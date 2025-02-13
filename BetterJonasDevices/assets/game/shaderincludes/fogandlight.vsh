@@ -1,6 +1,9 @@
 #ifndef DYNLIGHTS
     #define DYNLIGHTS 0
 #endif
+#ifndef MINBRIGHT
+    #define MINBRIGHT 0
+#endif
 #if SHADOWQUALITY > 0
 out float blockBrightness;
 #endif
@@ -13,7 +16,7 @@ uniform float flatFogStart;
 uniform float viewDistance;
 uniform float viewDistanceLod0;
 uniform float glitchStrengthFL;
-uniform float nightVisonStrength;
+uniform float nightVisionStrength;
 
 #if DYNLIGHTS > 0
 uniform vec3 pointLights[DYNLIGHTS];
@@ -21,7 +24,9 @@ uniform vec3 pointLightColors[DYNLIGHTS];
 uniform int pointLightQuantity;
 #endif
 
+#include fogspheres.ash
 #include nightvision.ash
+
 
 vec4 applyLightWithoutPointLight(vec4 sunColor, vec4 blockColor, float bGlow) {
 	float bSun = (sunColor.r + sunColor.g + sunColor.b)/3;
@@ -76,6 +81,7 @@ vec4 getPointLightRgbv(vec3 worldPos) {
 #endif
 }
 
+
 // sunColor = color of the ambient light, or the sun color really
 // lightColor = rgb is block light, a is sun light brightness
 vec4 applyLight(vec3 ambientColor, vec4 lightColor, int renderFlags, vec4 worldPos) {
@@ -98,10 +104,10 @@ vec4 applyLight(vec3 ambientColor, vec4 lightColor, int renderFlags, vec4 worldP
 	float bBlock = (blockLightColor.r + blockLightColor.g + blockLightColor.b)/3;
 	
 		
-	if (nightVisonStrength > 0) {
-		pointColSum += vec4(nightVisionColor(), 0.5) * nightVisonStrength;
-		//sunLightColor = mix(sunLightColor, nightVisionColor(), nightVisonStrength / 100);
-		bSun += nightVisonStrength / 3;
+	if (nightVisionStrength > 0) {
+		pointColSum += vec4(nightVisionColor(), 0.5) * nightVisionStrength;
+		//sunLightColor = mix(sunLightColor, nightVisionColor(), nightVisionStrength / 100);
+		bSun += nightVisionStrength / 3;
 	}
 
 	
@@ -111,7 +117,7 @@ vec4 applyLight(vec3 ambientColor, vec4 lightColor, int renderFlags, vec4 worldP
 	bBlock /= max(1, glitchStrengthFL * 2);
 
 	// Light up all caves
-	// bBlock = 1;
+	bBlock = max(MINBRIGHT, bBlock);
 
 	bPoint /= max(1, glitchStrengthFL * 2);	
 	
@@ -134,14 +140,14 @@ vec4 applyLight(vec3 ambientColor, vec4 lightColor, int renderFlags, vec4 worldP
 	
 	rgba *= contrast;
 	
-	/*if (nightVisonStrength > 0)
+	/*if (nightVisionStrength > 0)
 	{
 		vec3 nightvision = vec3(
 			clamp(rgba.r - 0.5, 0, 1) * 2, 
 			clamp(rgba.g - 0.5, 0, 1) * 1.5, 
 			clamp(rgba.b - 0.5, 0, 1) * 2
 		);
-		rgba.rgb = mix(rgba.rgb, nightvision, nightVisonStrength);
+		rgba.rgb = mix(rgba.rgb, nightvision, nightVisionStrength);
 	}*/
 	
 	return vec4(rgba, 1);
@@ -151,15 +157,10 @@ vec4 applyLight(vec3 ambientColor, vec4 lightColor, int renderFlags, vec4 worldP
 
 
 float getFogLevel(vec4 worldPos, float fogMin, float fogDensity) {
-	float depth = length(worldPos);
+	float depth = length(worldPos.xyz);
 	float clampedDepth = min(250, depth);
 	float heightDiff = worldPos.y - flatFogStart;
-	
-	//float extraDistanceFog = max(-flatFogDensity * flatFogStart / (160 + heightDiff * 3), 0);   // heightDiff*3 seems to fix distant mountains being supper fogged on most flat fog values
-	// ^ this breaks stuff. Also doesn't seem to be needed? Seems to work fine without
-	
 	float extraDistanceFog = max(-flatFogDensity * clampedDepth * (flatFogStart) / 60, 0); // div 60 was 160 before, at 160 thick flat fog looks broken when looking at trees
-	
 	float distanceFog = 1 - 1 / exp(clampedDepth * fogDensity + extraDistanceFog);
 	
 	float flatFog = 1 - 1 / exp(heightDiff * flatFogDensity); 
@@ -170,7 +171,7 @@ float getFogLevel(vec4 worldPos, float fogMin, float fogDensity) {
 	
 	// Needs to be added after so that underwater fog still gets applied. 
 	val += fogMin; 
-	
+		
 	return clamp(val, 0, 1);
 }
 
@@ -178,5 +179,9 @@ float getFogLevel(vec4 worldPos, float fogMin, float fogDensity) {
 
 vec4 applyFog(vec4 worldPos, vec4 rgbaPixel, vec4 rgbaFog, float fogMin, float fogDensity) {
 	float amount = getFogLevel(worldPos, fogMin, fogDensity);
-	return vec4(mix(rgbaPixel.rgb, rgbaFog.rgb, amount), rgbaPixel.a * rgbaFog.a);
+	vec4 outcolor = vec4(mix(rgbaPixel.rgb, rgbaFog.rgb, amount), rgbaPixel.a * rgbaFog.a);
+	
+	outcolor = applySpheresFog(outcolor, amount, worldPos.xyz);
+	
+	return outcolor;
 }

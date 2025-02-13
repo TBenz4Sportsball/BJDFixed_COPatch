@@ -22,7 +22,7 @@ namespace BetterJonasDevices
             {
                 new WorldInteraction()
                 {
-                    ActionLangCode = "betterjonasdevices:blockhelp-basereturn-recharge",
+                    ActionLangCode = "betterjonasdevicesfixed:blockhelp-basereturn-recharge",
                     Itemstacks = new ItemStack[] { new ItemStack(api.World.GetItem(new AssetLocation("gear-temporal"))) },
                     MouseButton = EnumMouseButton.Right,
                 }

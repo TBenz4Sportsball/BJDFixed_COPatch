@@ -74,7 +74,7 @@ namespace BetterJonasDevices
 
         private static void OnTeleported(ICoreAPI Api, IServerPlayer plr, BlockPos respPosition, BlockPos startPos)
         {
-            var dischargedTeleport = Api.World.GetBlock(new AssetLocation("betterjonasdevices", "basereturnteleporter-discharged"));
+            var dischargedTeleport = Api.World.GetBlock(new AssetLocation("betterjonasdevicesfixed", "basereturnteleporter-discharged"));
 
             // Search blocks around for better position
             var pos = FindSpaceToPlace(Api, respPosition);
