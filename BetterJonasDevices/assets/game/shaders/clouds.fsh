@@ -5,7 +5,7 @@ in vec4 rgbaCloud;
 in vec4 rgbaFog;
 in vec3 plightrgb;
 in float fogAmountf;
-in float nightVisonStrengthv;
+in float nightVisionStrengthv;
 
 in vec3 vertexPos;
 flat in int flagsf;
@@ -25,6 +25,7 @@ layout(location = 2) out vec4 outGlow;
 #include dither.fsh
 #include fogandlight.fsh
 #include skycolor.fsh
+#include underwatereffects.fsh
 
 void drawPixel(vec4 color, float glow) {
 	float weight = color.a * clamp(0.03 / (1e-5 + pow(gl_FragCoord.z / 200, 4.0)), 1e-2, 3e3);
@@ -41,14 +42,6 @@ void drawPixel(vec4 color, float glow) {
 
 void main()
 {
-	/*float a = (fragWorldPos.x)/20;
-	float b = (fragWorldPos.z)/20;
-	float noise = (cnoise(vec3(a * 0.4, b * 0.4, 1))/2 + cnoise(vec3(a, b, 1))/2 + 0.5) / 2;
-	vec4 outColor = rgbaCloud;
-	outColor.a *= 1 + noise;
-	drawPixel(outColor);*/
-	
-	
 	float sealevelOffsetFactor = 0.25;
 	float dayLight = 1;
 	float horizonFog = 0;
@@ -70,11 +63,14 @@ void main()
 	
 	col.rgb = mix(col.rgb, rgbaFog.rgb, fogAmountf) + plightrgb;
 
-	col.rgb += nightVisionLight() * nightVisonStrengthv;
+	col.rgb += nightVisionLight() * nightVisionStrengthv;
 
 
 	// Seems to give a ~8 FPS boost on an intel hd 620 when looking at the sky at 128 view distance
 	if (col.a < 0.005) discard;
+	
+	float murkiness = max(0, getSkyMurkiness() - 14*fogDensityIn);
+	col.rgb = applyUnderwaterEffects(col.rgb, murkiness);
 	
 	drawPixel(col, max(0, skyGlow.a/10 + baseBloom));
 }

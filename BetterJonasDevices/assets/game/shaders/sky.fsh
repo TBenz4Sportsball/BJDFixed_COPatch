@@ -3,7 +3,7 @@
 
 in vec3 vertexPosition;
 in vec4 rgbaFog;
-in float nightVisonStrengthv;
+in float nightVisionStrengthv;
 
 uniform float fogDensityIn;
 uniform float fogMinIn;
@@ -23,6 +23,7 @@ layout(location = 3) out vec4 outGPosition;
 #include dither.fsh
 #include fogandlight.fsh
 #include skycolor.fsh
+#include underwatereffects.fsh
 
 void main()
 {
@@ -30,9 +31,12 @@ void main()
 	outGlow = vec4(1);
 	float sealevelOffsetFactor = 0.25;
 	getSkyColorAt(vertexPosition, sunPosition, sealevelOffsetFactor, clamp(dayLight, 0, 1), horizonFog, outColor, outGlow);
+
+	float murkiness = max(0, getSkyMurkiness() - 14*fogDensityIn);
+	outColor.rgb = applyUnderwaterEffects(outColor.rgb, murkiness);
 	
-	outColor.rgb += nightVisionLight() * nightVisonStrengthv;
-	outGlow.y *= clamp((dayLight - 0.05) * 2, 0, 1);
+	outColor.rgb += nightVisionLight() * nightVisionStrengthv;
+	outGlow.y *= clamp((dayLight - 0.05) * 2 - 50*murkiness, 0, 1);
 	
 #if SSAOLEVEL > 0
 	outGPosition = vec4(0);

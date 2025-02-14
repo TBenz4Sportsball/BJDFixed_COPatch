@@ -3,7 +3,7 @@
 
 in vec3 texCoords;
 in float worldPosY;
-in float nightVisonStrengthv;
+in float nightVisionStrengthv;
 
 uniform vec4 rgbaFog;
 uniform samplerCube ctex;
@@ -26,6 +26,7 @@ layout(location = 3) out vec4 outGPosition;
 #include nightvision.ash
 #include dither.fsh
 #include fogandlight.fsh
+#include underwatereffects.fsh
 
 void main () {
 	vec4 skyCol = texture (ctex, texCoords) + NoiseFromPixelPosition(ivec2(gl_FragCoord.xy), ditherSeed, horizontalResolution);
@@ -34,7 +35,10 @@ void main () {
 	skyCol.a = max(0, 1 - 2*(dayLight - 0.05));
 	
 	outColor = skyCol;
-	outColor.rgb += nightVisionLight() * nightVisonStrengthv;
+	outColor.rgb += nightVisionLight() * nightVisionStrengthv;
+	
+	float murkiness=getSkyMurkiness();
+	outColor.rgb = applyUnderwaterEffects(outColor.rgb, murkiness);
 	
 #if SSAOLEVEL > 0
 	outGPosition = vec4(0);
