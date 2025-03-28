@@ -61,6 +61,21 @@ internal class NightVisionRenderer: IRenderer
         if (inv == null) return false;
 
         var stack = inv[(int)EnumCharacterDressType.ArmorHead]?.Itemstack;
+
+        /* Combat Overhaul replaces the 3 vanilla armor slots with 24 specialized slots. The night vision helmet can occupy 
+         * 3 slots, Outer Head, Outer Face, and Outer Neck, so we have to check all 3. Currently, these slots are at indicies
+         * 15, 16, and 17 past the length of EnumCharacterDressType. If we do find a night vision device in one of these slots
+         * we can assume the vanilla slot isn't in use and change stack to reference the helmet we found.
+         */
+        int coHelmSlots = Enum.GetValues<EnumCharacterDressType>().Length + 15; // There has to be a better way to do this, the logic will break if CO reorders their armor indexes
+
+        for (int i = 0; i < 3; i++)
+        {
+            ItemStack coStack = inv[coHelmSlots + i]?.Itemstack;
+            if (coStack != null && coStack.Collectible is ItemNightvisiondevice)
+                stack = coStack;
+        }
+        
         if (stack == null || stack.Collectible is not ItemNightvisiondevice) return false;
 
         var fuelLeft = Math.Max(0, stack.Attributes.GetDecimal("fuelHours"));
